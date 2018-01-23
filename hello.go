@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"regexp"
 )
 
@@ -62,12 +63,11 @@ type IndexItem struct {
 
 func findIndex(content string) (index []string, err error) {
 	matches := ptnURL.FindAllStringSubmatch(content, -1)
-	fmt.Println(len(matches))
-	fmt.Printf("%q", matches)
+	// fmt.Printf("%q", matches)
 	index = make([]string, len(matches))
 	for i, item := range matches {
-		fmt.Println(item)
-		fmt.Println(i)
+		// fmt.Println(item)
+		// fmt.Println(i)
 
 		// index[i] = IndexItem{item[1], ""}
 		index[i] = item[2] + "view/photo/l/public/" + item[3]
@@ -83,13 +83,19 @@ func readContent(url string) (content IndexItem) {
 	if match != nil {
 		content.url = url
 		content.title = match[1] + ".jpg"
-		raw, statusCode := Get(url)
-		if statusCode != 200 {
-			fmt.Print("Fail to get the raw data from", url, "\n")
-			return
+
+		//判断文件是否已存在
+		if _, err := os.Stat("./img/" + content.title); err != nil {
+			if os.IsNotExist(err) {
+				// file does not exist
+				raw, statusCode := Get(url)
+				if statusCode != 200 {
+					fmt.Print("Fail to get the raw data from", url, "\n")
+					return
+				}
+				ioutil.WriteFile("./img/"+content.title, []byte(raw), 0644)
+			}
 		}
-		ioutil.WriteFile("./img/"+content.title, []byte(raw), 0644)
-		// content = match[1]
 	} else {
 		return
 	}
@@ -110,8 +116,8 @@ func main() {
 	for _, item := range index {
 		fmt.Printf("Get content from %s and write to file.\n", item)
 		// fileName := fmt.Sprintf("%s.txt", item.title)
-		content := readContent(item)
-		fmt.Println(content.title)
+		readContent(item)
+		// fmt.Println(content.title)
 
 		// fmt.Printf("Finish writing to %s.\n", fileName)
 	}
